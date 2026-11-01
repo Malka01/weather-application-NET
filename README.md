@@ -25,6 +25,10 @@
 - Alternatively, set the `OpenWeatherMap__ApiKey` environment variable before starting the app.
 - The key may take a short time to become active. Restart the application after configuring it.
 
+**CI/CD**
+- The GitHub Actions workflow in `.github/workflows/ci-cd.yml` runs on pushes and pull requests targeting `main`.
+- It restores dependencies, builds and tests the project, publishes a deployment artifact, and runs a smoke test against the published application.
+
 **Tools and Technologies Used**
 - C# with ASP.NET Core MVC
 - Third-party Weather APIs (API key required)

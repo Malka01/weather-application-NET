@@ -1,0 +1,91 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  PROJECT_PATH: WeatherApp.csproj
+  PUBLISH_PATH: ${{ github.workspace }}/artifacts/publish
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.PROJECT_PATH }}
+
+      - name: Build
+        run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test ${{ env.PROJECT_PATH }} --configuration Release --no-build
+
+      - name: Publish deployment package
+        run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --no-build --output "${{ env.PUBLISH_PATH }}"
+
+      - name: Upload deployment package
+        uses: actions/upload-artifact@v4
+        with:
+          name: weather-app-publish
+          path: ${{ env.PUBLISH_PATH }}
+          if-no-files-found: error
+
+  deployment-smoke-test:
+    name: Test deployment package
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download deployment package
+        uses: actions/download-artifact@v4
+        with:
+          name: weather-app-publish
+          path: ${{ env.PUBLISH_PATH }}
+
+      - name: Set up .NET runtime
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Start published application
+        working-directory: ${{ env.PUBLISH_PATH }}
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: |
+          dotnet WeatherApp.dll --urls http://127.0.0.1:5080 > app.log 2>&1 &
+          echo $! > app.pid
+
+      - name: Verify deployed application
+        working-directory: ${{ env.PUBLISH_PATH }}
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:5080/ > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat app.log
+          exit 1
+
+      - name: Stop published application
+        if: always()
+        working-directory: ${{ env.PUBLISH_PATH }}
+        run: kill "$(cat app.pid)" 2>/dev/null || true
