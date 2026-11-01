@@ -14,9 +14,6 @@
 - The weather data is displayed in a clean, intuitive format with the option to toggle between units.
 
 **Setup Instructions**
-- Clone the Repository
-- ```git clone https://github.com/Gutheras/WeatherApp  ```
-  
 
 **Configure the Weather API**
 - Create an account at [OpenWeatherMap](https://openweathermap.org/) and create an API key.
@@ -33,4 +30,3 @@
 - Third-party Weather APIs (API key required)
 - HTML5, CSS3, JavaScript
 - Bootstrap for responsive design
-
