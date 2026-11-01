@@ -11,23 +11,23 @@ public interface IWeatherService
 public class WeatherService : IWeatherService
 {
     private readonly HttpClient _httpClient;
-    private readonly string _apiKey;
+    private readonly string? _apiKey;
     private readonly ILogger<WeatherService> _logger;
 
     public WeatherService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<WeatherService> logger)
     {
         _httpClient = httpClientFactory.CreateClient("OpenWeatherMap");
-        _apiKey = configuration["OpenWeatherMap:ApiKey"]?.Trim()
-            ?? throw new InvalidOperationException("OpenWeatherMap API key is not configured.");
-        if (string.IsNullOrWhiteSpace(_apiKey))
-        {
-            throw new InvalidOperationException("OpenWeatherMap API key is not configured.");
-        }
+        _apiKey = configuration["OpenWeatherMap:ApiKey"]?.Trim();
         _logger = logger;
     }
 
     public async Task<WeatherViewModel> GetWeatherDataAsync(string city, string units)
     {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+        {
+            throw new InvalidOperationException("OpenWeatherMap API key is not configured.");
+        }
+
         var encodedCity = Uri.EscapeDataString(city);
         var currentWeatherUrl = $"weather?q={encodedCity}&units={units}&appid={_apiKey}";
         var forecastUrl = $"forecast?q={encodedCity}&units={units}&appid={_apiKey}";
